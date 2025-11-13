@@ -116,7 +116,7 @@ export class CalendarService {
     );
 
     // Path to store tokens
-    this.tokensPath = path.join(__dirname, '../../../tokens.json');
+    this.tokensPath = path.join(process.cwd(), 'tokens', 'calendar.tokens.json');
 
     // Try to load existing tokens
     this.loadTokens().catch(() => {
@@ -390,6 +390,8 @@ export class CalendarService {
 
 export default CalendarService;
 ```
+
+> Tokens are cached at `backend/tokens/calendar.tokens.json`. This folder is git-ignored so you can safely authenticate locally without leaking credentials.
 
 ## 🛣️ Step 4: Create Auth Routes
 

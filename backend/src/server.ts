@@ -2,6 +2,8 @@ import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { createLogger, format, transports } from 'winston';
+import { calendarRouter, calendarService } from './routes/calendar.routes';
+import { walletRouter } from './routes/wallet.routes';
 
 // Load environment variables
 dotenv.config();
@@ -60,16 +62,58 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
+// Calendar routes
+app.use('/api/calendar', calendarRouter);
+
+// Wallet routes
+app.use('/api/wallet', walletRouter);
+
+// Convenience redirect for auth
+app.get('/auth', (req: Request, res: Response) => {
+  res.redirect('/api/calendar/auth');
+});
+
+// OAuth callback handler (matches GOOGLE_REDIRECT_URI in .env)
+app.get('/auth/google/callback', async (req: Request, res: Response) => {
+  const { code } = req.query;
+
+  if (!code || typeof code !== 'string') {
+    return res.status(400).json({
+      success: false,
+      error: 'Authorization code is required'
+    });
+  }
+
+  try {
+    await calendarService.getAccessToken(code);
+    return res.json({
+      success: true,
+      message: 'Successfully authenticated with Google Calendar!',
+      redirect: process.env.CALENDAR_POST_AUTH_REDIRECT ?? 'http://localhost:3000'
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      error: error.message ?? 'Failed to authenticate with Google Calendar'
+    });
+  }
+});
+
 // API status
 app.get('/api/status', (req: Request, res: Response) => {
   res.json({
     message: 'Epochi API is running',
     endpoints: {
       health: '/health',
-      calendar: '/api/calendar/*',
-      wallet: '/api/wallet/*',
-      streams: '/api/streams/*',
-      transactions: '/api/transactions/*'
+      calendarAuth: '/api/calendar/auth',
+      calendarCallback: '/api/calendar/callback',
+      calendarEvents: '/api/calendar/events',
+      calendarStatus: '/api/calendar/status',
+      walletInfo: '/api/wallet/:calendarId',
+      walletAddress: '/api/wallet/:calendarId/address',
+      walletSend: '/api/wallet/:calendarId/send',
+      walletFaucet: '/api/wallet/:calendarId/faucet',
+      networkStatus: '/api/wallet/network/status'
     }
   });
 });
@@ -98,6 +142,7 @@ app.listen(PORT, () => {
   logger.info(`🔗 Network: ${process.env.SOMNIA_NETWORK || 'testnet'}`);
   logger.info(`📅 Calendar polling interval: ${process.env.CALENDAR_POLL_INTERVAL || 30}s`);
   logger.info(`💡 Health Check: http://localhost:${PORT}/health`);
+  logger.info(`📅 Calendar auth: http://localhost:${PORT}/api/calendar/auth`);
 });
 
 // Graceful shutdown
