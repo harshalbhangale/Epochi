@@ -4,6 +4,9 @@ import dotenv from 'dotenv';
 import { createLogger, format, transports } from 'winston';
 import { calendarRouter, calendarService } from './routes/calendar.routes';
 import { walletRouter } from './routes/wallet.routes';
+import { streamsRouter } from './routes/streams.routes';
+import { transactionRouter } from './routes/transaction.routes';
+import { agentRouter } from './routes/agent.routes';
 
 // Load environment variables
 dotenv.config();
@@ -68,6 +71,15 @@ app.use('/api/calendar', calendarRouter);
 // Wallet routes
 app.use('/api/wallet', walletRouter);
 
+// Data Streams routes
+app.use('/api/streams', streamsRouter);
+
+// Transaction execution routes
+app.use('/api/transactions', transactionRouter);
+
+// Calendar Agent routes
+app.use('/api/agent', agentRouter);
+
 // Convenience redirect for auth
 app.get('/auth', (req: Request, res: Response) => {
   res.redirect('/api/calendar/auth');
@@ -113,7 +125,20 @@ app.get('/api/status', (req: Request, res: Response) => {
       walletAddress: '/api/wallet/:calendarId/address',
       walletSend: '/api/wallet/:calendarId/send',
       walletFaucet: '/api/wallet/:calendarId/faucet',
-      networkStatus: '/api/wallet/network/status'
+      networkStatus: '/api/wallet/network/status',
+      streamsWrite: '/api/streams/transaction',
+      streamsRead: '/api/streams/transaction/:transactionId',
+      streamsAll: '/api/streams/transactions/:publisherAddress',
+      streamsSchema: '/api/streams/schema',
+      streamsPublisher: '/api/streams/publisher',
+      transactionParse: '/api/transactions/parse',
+      transactionExecute: '/api/transactions/execute',
+      transactionPending: '/api/transactions/pending/:calendarId',
+      agentStatus: '/api/agent/status',
+      agentStart: '/api/agent/start',
+      agentStop: '/api/agent/stop',
+      agentQueue: '/api/agent/queue',
+      agentClearCache: '/api/agent/clear-cache'
     }
   });
 });
