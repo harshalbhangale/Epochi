@@ -1,7 +1,8 @@
-import { SDK, SchemaEncoder, toHex } from '@somnia-chain/streams';
+import { SDK, SchemaEncoder } from '@somnia-chain/streams';
 import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { defineChain } from 'viem';
+import crypto from 'crypto';
 import {
   TRANSACTION_SCHEMA,
   TransactionData,
@@ -14,7 +15,7 @@ import {
  * Somnia Testnet chain configuration
  */
 const somniaTestnet = defineChain({
-  id: 50311,
+  id: 50312,
   name: 'Somnia Testnet',
   network: 'somnia-testnet',
   nativeCurrency: {
@@ -105,7 +106,7 @@ export class DataStreamsService {
       // Encode the data
       const encodedData = this.schemaEncoder.encodeData([
         { name: 'timestamp', value: data.timestamp.toString(), type: 'uint64' },
-        { name: 'transactionId', value: toHex(data.transactionId, { size: 32 }), type: 'bytes32' },
+        { name: 'transactionId', value: this.stringToBytes32(data.transactionId), type: 'bytes32' },
         { name: 'userWallet', value: data.userWallet, type: 'address' },
         { name: 'calendarId', value: data.calendarId, type: 'string' },
         { name: 'eventId', value: data.eventId, type: 'string' },
@@ -114,7 +115,7 @@ export class DataStreamsService {
         { name: 'toToken', value: data.toToken, type: 'string' },
         { name: 'amount', value: data.amount.toString(), type: 'uint256' },
         { name: 'amountReceived', value: data.amountReceived.toString(), type: 'uint256' },
-        { name: 'txHash', value: toHex(data.txHash, { size: 32 }), type: 'bytes32' },
+        { name: 'txHash', value: this.stringToBytes32(data.txHash), type: 'bytes32' },
         { name: 'status', value: data.status, type: 'string' },
         { name: 'notes', value: data.notes, type: 'string' },
       ]);
@@ -124,7 +125,7 @@ export class DataStreamsService {
       // Write to Data Streams
       const txHash = await this.sdk.streams.set([
         {
-          id: toHex(data.transactionId, { size: 32 }),
+          id: this.stringToBytes32(data.transactionId),
           schemaId: this.schemaId,
           data: encodedData,
         },
@@ -151,7 +152,7 @@ export class DataStreamsService {
         await this.initialize();
       }
 
-      const dataKey = toHex(transactionId, { size: 32 });
+      const dataKey = this.stringToBytes32(transactionId);
 
       console.log(`📖 Reading transaction from Data Streams: ${transactionId}`);
 
@@ -293,6 +294,25 @@ export class DataStreamsService {
       status,
       notes,
     };
+  }
+  
+  /**
+   * Convert any string/hex input into a valid bytes32 hex string
+   */
+  private stringToBytes32(input: string): `0x${string}` {
+    if (!input) {
+      return `0x${'0'.repeat(64)}`;
+    }
+
+    if (input.startsWith('0x')) {
+      if (input.length === 66) {
+        return input as `0x${string}`;
+      }
+      // For other hex lengths, normalize by hashing below
+    }
+
+    const hash = crypto.createHash('sha256').update(input).digest('hex');
+    return `0x${hash}` as `0x${string}`;
   }
 }
 

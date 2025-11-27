@@ -43,14 +43,14 @@ export class EventParser {
 
     const executionTime = new Date(startTime);
 
+    // Check if title contains transfer pattern FIRST (more specific)
+    if (this.isTransferPattern(eventTitle)) {
+      return this.parseTransferEvent(eventTitle, executionTime, eventId);
+    }
+
     // Check if title contains swap pattern
     if (this.isSwapPattern(eventTitle)) {
       return this.parseSwapEvent(eventTitle, executionTime, eventId);
-    }
-
-    // Check if title contains transfer pattern
-    if (this.isTransferPattern(eventTitle)) {
-      return this.parseTransferEvent(eventTitle, executionTime, eventId);
     }
 
     return {
@@ -97,11 +97,11 @@ export class EventParser {
     executionTime: Date,
     eventId: string
   ): ParsedTransaction {
-    // Try different swap patterns
+    // Try different swap patterns (only match token symbols, not addresses)
     const patterns = [
-      /swap\s+(\d+\.?\d*)\s+(\w+)\s+(to|for|->)\s+(\w+)/i,
-      /(\d+\.?\d*)\s+(\w+)\s+->\s+(\w+)/i,
-      /(\d+\.?\d*)\s+(\w+)\s+to\s+(\w+)/i,
+      /swap\s+(\d+\.?\d*)\s+([a-zA-Z]+)\s+(to|for|->)\s+([a-zA-Z]+)/i,
+      /(\d+\.?\d*)\s+([a-zA-Z]+)\s+->\s+([a-zA-Z]+)/i,
+      /(\d+\.?\d*)\s+([a-zA-Z]+)\s+to\s+([a-zA-Z]+)(?!\s+0x)/i, // Don't match if followed by 0x address
     ];
 
     for (const pattern of patterns) {
@@ -195,10 +195,11 @@ export class EventParser {
       return false;
     }
 
-    // Check execution time is in future (with 1 minute buffer)
+    // Check execution time is not too old (15 minute buffer for past events)
     const now = new Date();
-    const buffer = 60 * 1000; // 1 minute
+    const buffer = 15 * 60 * 1000; // 15 minutes - allow events up to 15 min in past
     if (parsed.executionTime.getTime() < now.getTime() - buffer) {
+      console.log(`⏰ Event too old: "${parsed.eventTitle}" (started ${Math.floor((now.getTime() - parsed.executionTime.getTime()) / 60000)} min ago, max allowed: 15 min)`);
       return false;
     }
 

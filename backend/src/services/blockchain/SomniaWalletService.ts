@@ -17,7 +17,7 @@ import crypto from 'crypto';
  * Somnia Testnet chain configuration
  */
 const somniaTestnet = defineChain({
-  id: 50311,
+  id: 50312,
   name: 'Somnia Testnet',
   network: 'somnia-testnet',
   nativeCurrency: {
@@ -232,10 +232,18 @@ export class SomniaWalletService {
 
       console.log(`💸 Sending ${amount} STT to ${to}`);
 
-      // Send transaction
+      // Get gas price
+      const gasPrice = await this.publicClient.getGasPrice();
+      
+      // Estimate gas
+      const gasEstimate = await this.estimateGas(calendarId, to, value);
+
+      // Send transaction with gas parameters
       const hash = await walletClient.sendTransaction({
         to,
         value,
+        gas: gasEstimate,
+        gasPrice: gasPrice,
       });
 
       console.log(`✅ Transaction sent: ${hash}`);

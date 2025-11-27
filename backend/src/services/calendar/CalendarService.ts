@@ -35,6 +35,14 @@ export class CalendarService {
       process.env.GOOGLE_REDIRECT_URI
     );
 
+    // Listen for token refresh events and persist new tokens
+    this.oauth2Client.on('tokens', (tokens) => {
+      console.log('🔄 Token refreshed, saving new tokens...');
+      this.persistTokens(tokens).catch((err) => {
+        console.error('Failed to persist refreshed tokens:', err);
+      });
+    });
+
     this.tokensPath =
       options.tokensFilePath ??
       path.join(process.cwd(), 'tokens', 'calendar.tokens.json');

@@ -182,23 +182,30 @@ export class CalendarAgent {
   private async processEvent(event: calendar_v3.Schema$Event): Promise<void> {
     const eventId = event.id || '';
     const eventTitle = event.summary || '';
+    const startTime = event.start?.dateTime || event.start?.date || 'unknown';
+
+    console.log(`📋 Processing: "${eventTitle}" | Start: ${startTime}`);
 
     // Skip if already processed
     if (this.processedEvents.has(eventId)) {
+      console.log(`   ⏭️  Already processed, skipping`);
       return;
     }
 
     // Skip if already executed (check description for checkmark)
     if (event.description?.includes('✅ Transaction Executed')) {
+      console.log(`   ✅ Already executed, skipping`);
       this.processedEvents.add(eventId);
       return;
     }
 
     // Parse the event
     const parsed = EventParser.parseEvent(event);
+    console.log(`   🔍 Parse result: type=${parsed.type}, valid=${parsed.valid}, error=${parsed.error || 'none'}`);
 
     // Skip if not a valid transaction
     if (!EventParser.validateTransaction(parsed)) {
+      console.log(`   ❌ Validation failed - not a transaction event or time issue`);
       return;
     }
 

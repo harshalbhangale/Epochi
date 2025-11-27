@@ -123,17 +123,22 @@ export class TransactionExecutor {
 
       console.log(`✅ Swap executed! Received ~${amountReceived} ${parsed.toToken}`);
 
-      // Record to Data Streams
-      const streamTxHash = await this.recordTransaction(
-        parsed,
-        calendarId,
-        userWallet,
-        amount,
-        parseEther(amountReceived),
-        mockTxHash,
-        TransactionStatus.EXECUTED,
-        `Swapped ${parsed.amount} ${parsed.fromToken} for ${amountReceived} ${parsed.toToken}`
-      );
+      // Record to Data Streams (but don't fail if this fails)
+      let streamTxHash = '';
+      try {
+        streamTxHash = await this.recordTransaction(
+          parsed,
+          calendarId,
+          userWallet,
+          amount,
+          parseEther(amountReceived),
+          mockTxHash,
+          TransactionStatus.EXECUTED,
+          `Swapped ${parsed.amount} ${parsed.fromToken} for ${amountReceived} ${parsed.toToken}`
+        );
+      } catch (streamError: any) {
+        console.error('⚠️  Failed to record to Data Streams (non-fatal):', streamError.message);
+      }
 
       return {
         success: true,
@@ -196,17 +201,22 @@ export class TransactionExecutor {
 
       console.log(`✅ Transfer executed! Hash: ${result.hash}`);
 
-      // Record to Data Streams
-      const streamTxHash = await this.recordTransaction(
-        parsed,
-        calendarId,
-        userWallet,
-        parseEther(amount),
-        parseEther(amount),
-        result.hash || '',
-        TransactionStatus.EXECUTED,
-        `Transferred ${amount} ${parsed.fromToken} to ${recipient}`
-      );
+      // Record to Data Streams (but don't fail if this fails)
+      let streamTxHash = '';
+      try {
+        streamTxHash = await this.recordTransaction(
+          parsed,
+          calendarId,
+          userWallet,
+          parseEther(amount),
+          parseEther(amount),
+          result.hash || '',
+          TransactionStatus.EXECUTED,
+          `Transferred ${amount} ${parsed.fromToken} to ${recipient}`
+        );
+      } catch (streamError: any) {
+        console.error('⚠️  Failed to record to Data Streams (non-fatal):', streamError.message);
+      }
 
       return {
         success: true,
