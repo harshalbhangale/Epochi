@@ -1,5 +1,7 @@
-import express, { Express, Request, Response } from 'express';
+import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { createLogger, format, transports } from 'winston';
 import { calendarRouter, calendarService } from './routes/calendar.routes';
@@ -7,9 +9,20 @@ import { walletRouter } from './routes/wallet.routes';
 import { streamsRouter } from './routes/streams.routes';
 import { transactionRouter } from './routes/transaction.routes';
 import { agentRouter } from './routes/agent.routes';
+import { validateEnvironment } from './utils/validateEnv';
 
 // Load environment variables
 dotenv.config();
+
+// Validate environment in production
+if (process.env.NODE_ENV === 'production') {
+  try {
+    validateEnvironment();
+  } catch (error) {
+    console.error('❌ Environment validation failed:', error);
+    process.exit(1);
+  }
+}
 
 // Create Express app
 const app: Express = express();
@@ -35,15 +48,34 @@ const logger = createLogger({
   ]
 });
 
-// Middleware
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? 'https://your-frontend-domain.com' 
-    : 'http://localhost:3000',
-  credentials: true
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: process.env.NODE_ENV === 'production' ? 100 : 1000, // Limit requests per window
+  message: { error: 'Too many requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/', limiter);
+
+// CORS configuration
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || (process.env.NODE_ENV === 'production' 
+    ? 'https://your-frontend-domain.com' 
+    : ['http://localhost:3000', 'http://127.0.0.1:3000']),
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
+// Body parsing middleware
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
 // Request logging middleware
 app.use((req: Request, res: Response, next) => {
