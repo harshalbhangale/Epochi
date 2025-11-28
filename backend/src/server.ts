@@ -9,6 +9,7 @@ import { walletRouter } from './routes/wallet.routes';
 import { streamsRouter } from './routes/streams.routes';
 import { transactionRouter } from './routes/transaction.routes';
 import { agentRouter } from './routes/agent.routes';
+import { dataStreamsRouter } from './routes/data-streams.routes';
 import { validateEnvironment } from './utils/validateEnv';
 
 // Load environment variables
@@ -112,6 +113,9 @@ app.use('/api/transactions', transactionRouter);
 // Calendar Agent routes
 app.use('/api/agent', agentRouter);
 
+// Enhanced Data Streams routes
+app.use('/api/data-streams', dataStreamsRouter);
+
 // Convenience redirect for auth
 app.get('/auth', (req: Request, res: Response) => {
   res.redirect('/api/calendar/auth');
@@ -170,7 +174,13 @@ app.get('/api/status', (req: Request, res: Response) => {
       agentStart: '/api/agent/start',
       agentStop: '/api/agent/stop',
       agentQueue: '/api/agent/queue',
-      agentClearCache: '/api/agent/clear-cache'
+      agentClearCache: '/api/agent/clear-cache',
+      // Enhanced Data Streams (Hackathon Use Cases)
+      dataStreamsInfo: '/api/data-streams/info',
+      dataStreamsIntent: '/api/data-streams/intent',
+      dataStreamsStats: '/api/data-streams/stats/:userWallet',
+      dataStreamsProof: '/api/data-streams/proof/:proofId',
+      dataStreamsDemo: '/api/data-streams/demo'
     }
   });
 });
